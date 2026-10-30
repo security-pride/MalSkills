@@ -40,9 +40,10 @@ and reasoning proofs behind the decision.
 
 ## Installation
 
-The complete setup requires Python 3.10+, Semgrep, Git submodules, and either
-an authenticated Codex CLI or an OpenAI-compatible API. Individual baselines
-may additionally require Node.js, Go, Docker, sandboxes, or service tokens.
+The complete setup requires Python 3.10+, Semgrep, Git submodules, Node.js for
+the YASA value-flow engine, and either an authenticated Codex CLI or an
+OpenAI-compatible API. Individual baselines may additionally require Go,
+Docker, sandboxes, or service tokens.
 
 ```bash
 git clone --recurse-submodules https://github.com/security-pride/MalSkills.git
@@ -51,9 +52,17 @@ cd MalSkills
 python3 -m venv .venv
 .venv/bin/pip install -e '.[analysis]'
 .venv/bin/semgrep --version
+
+# Build the YASA value-flow engine.
+(cd vendor/yasa && npm ci && npx tsc)
+
 # Codex CLI mode only:
 codex login
 ```
+
+`node` must stay on `PATH` when MalSkills runs, not only while building.
+Without `vendor/yasa/dist/main.js` or without `node`, `YasaAdapter.available()`
+returns false and the value-flow stage is skipped without an error.
 
 Synchronize submodules in an existing checkout with:
 
