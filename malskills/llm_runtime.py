@@ -399,7 +399,7 @@ def invoke_structured_json(
     if runtime.backend == "anthropic_api":
         return _invoke_anthropic_api(runtime, prompt=prompt, system_prompt=system_prompt)
     if runtime.backend == "openai_api":
-        return _invoke_openai_api(runtime, prompt=prompt, system_prompt=system_prompt)
+        return _invoke_openai_api(runtime, prompt=prompt, schema=schema, system_prompt=system_prompt)
     if runtime.backend == "unavailable" and runtime.requested_mode != "auto":
         if runtime.requested_mode in {"api", "openai_api", "anthropic", "anthropic_api"}:
             raise RuntimeError(
@@ -508,6 +508,7 @@ def _invoke_openai_api(
     runtime: LlmRuntimeConfig,
     *,
     prompt: str,
+    schema: dict[str, Any],
     system_prompt: str,
 ) -> dict[str, Any] | None:
     if not runtime.api_key:
@@ -516,7 +517,13 @@ def _invoke_openai_api(
     payload = {
         "model": runtime.model,
         "temperature": 0,
-        "response_format": {"type": "json_object"},
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "malskills_structured_output",
+                "schema": schema,
+            },
+        },
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
