@@ -79,17 +79,32 @@ class YasaAdapter:
                     language=language,
                     checker_id=checker_id,
                     rule_config=self._rule_config_for(language),
-                    uast_sdk=os.environ.get(sdk_env) if sdk_env else None,
+                    uast_sdk=self._uast_sdk_path(sdk_env),
                 )
             )
         return self._dedupe_findings(bindings)
+
+    def _uast_sdk_path(self, sdk_env: str | None) -> str | None:
+        """Resolve the UAST SDK directory for a checker that needs one.
+
+        The environment variable wins when it is set. Otherwise fall back to
+        the directory install_deps.sh writes the binaries into, so a checkout
+        that ran it analyses Python without any further configuration.
+        """
+        if not sdk_env:
+            return None
+        configured = os.environ.get(sdk_env)
+        if configured:
+            return configured
+        vendored = self.yasa_root / "deps"
+        return str(vendored) if vendored.is_dir() else None
 
     def _planned_languages(self, targets: list[AnalysisTarget]) -> list[str]:
         artifact_types = {target.language for target in targets}
         planned: list[str] = []
         for language in sorted(item for item in artifact_types if item):
             _, sdk_env = self.CHECKER_CONFIG[language]
-            if sdk_env and not os.environ.get(sdk_env):
+            if sdk_env and not self._uast_sdk_path(sdk_env):
                 continue
             planned.append(language)
         return planned
